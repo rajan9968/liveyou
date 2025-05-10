@@ -79,6 +79,7 @@ const Basics = ({ role }) => {
   const { localMicrophoneTrack } = useLocalMicrophoneTrack(isHost && micOn);
   const { localCameraTrack } = useLocalCameraTrack(isHost && cameraOn);
 
+  // Join channel with appropriate role
   useJoin(
     {
       appid: appId,
@@ -93,6 +94,9 @@ const Basics = ({ role }) => {
   usePublish(isHost ? [localMicrophoneTrack, localCameraTrack] : []);
 
   const remoteUsers = useRemoteUsers();
+
+  // Add this to understand who is joining
+  console.log("Remote Users: ", remoteUsers);
 
   useEffect(() => {
     // Reset camera and mic when role changes
@@ -183,27 +187,76 @@ const Basics = ({ role }) => {
                 </div>
               )}
 
-              {/* Remote users */}
+              {/* Remote users - Show all remote users regardless of whether they have tracks */}
               {remoteUsers.map((user) => (
                 <div key={user.uid} style={{ textAlign: "center" }}>
                   <RemoteUser
                     user={user}
-                    style={{ width: 400, height: 300, borderRadius: 10, border: "2px solid #2196F3" }}
-                  />
+                    style={{
+                      width: 400,
+                      height: 300,
+                      borderRadius: 10,
+                      border: "2px solid #2196F3",
+                      backgroundColor: "#f0f0f0",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center"
+                    }}
+                  >
+                    {/* Add a fallback indicator for audience members with no video */}
+                    {(!user.hasVideo && !user.videoTrack) && (
+                      <div style={{
+                        position: "absolute",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: "rgba(0,0,0,0.1)",
+                        borderRadius: 10
+                      }}>
+                        <div style={{
+                          width: 80,
+                          height: 80,
+                          borderRadius: "50%",
+                          backgroundColor: "#555",
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          color: "white",
+                          fontSize: 24
+                        }}>
+                          {user.uid ? String(user.uid).charAt(0) : "A"}
+                        </div>
+                      </div>
+                    )}
+                  </RemoteUser>
                   <p style={{ marginTop: 5 }}>
                     {user.uid ? `User ${user.uid}` : "Remote User"}
-                    {user.hasAudio === false && user.hasVideo === false ? " (Audience)" : " (Host)"}
+                    {user.hasAudio || user.hasVideo ? " (Host)" : " (Audience)"}
                   </p>
                 </div>
               ))}
 
-              {/* Show message if no remote users yet */}
-              {remoteUsers.length === 0 && (
+              {isHost && remoteUsers.length === 0 && (
                 <div style={{ textAlign: "center", padding: 20 }}>
                   <p>Waiting for others to join the stream...</p>
                 </div>
               )}
+
+              {!isHost && remoteUsers.filter(user => user.hasVideo || user.hasAudio).length === 0 && (
+                <div style={{ textAlign: "center", padding: 20 }}>
+                  <p>Waiting for hosts to start streaming...</p>
+                </div>
+              )}
             </div>
+
+            {/* Show audience count for hosts */}
+            {isHost && (
+              <div style={{ marginTop: 10, marginBottom: 10 }}>
+                <p>Audience members: {remoteUsers.filter(user => !user.hasAudio && !user.hasVideo).length}</p>
+              </div>
+            )}
 
             {/* Controls - only show mic and camera controls for hosts */}
             <div style={{ marginTop: 20 }}>
